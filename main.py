@@ -18,7 +18,9 @@ app = FastAPI(title="Faultline")
 
 
 def calculate_average(numbers):
-    # BUG (intentional): no guard against an empty list -> ZeroDivisionError.
+    # Guard against an empty list to prevent ZeroDivisionError
+    if not numbers:
+        return 0
     return sum(numbers) / len(numbers)
 
 
