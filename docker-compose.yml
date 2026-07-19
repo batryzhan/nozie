@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    container_name: faultline
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # Nozie agent: watches the `faultline` container via the Docker socket and
+  # reports crashes to the dashboard. Installs the library straight from PyPI.
+  nozie-agent:
+    image: python:3.11-slim
+    container_name: faultline-agent
+    # Same policy as `web` above — without it a daemon restart / reboot /
+    # process exit leaves the agent down for good (it had no restart policy,
+    # so the monitor silently stayed offline until noticed on the dashboard).
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./agent_runner.py:/agent_runner.py
+    working_dir: /
+    command: sh -c "pip install --no-cache-dir nozie && python agent_runner.py"
+    environment:
+      - NOZIE_API_KEY=${NOZIE_API_KEY}
+      - NOZIE_DASHBOARD_URL=${NOZIE_DASHBOARD_URL:-https://nozie.xyz}
+    depends_on:
+      - web
